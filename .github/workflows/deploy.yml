@@ -23,17 +23,9 @@ jobs:
     steps:
       - name: Mirror website
         run: |
-          wget \
-            --mirror \
-            --convert-links \
-            --adjust-extension \
-            --page-requisites \
-            --no-parent \
-            --domains 757688.xyz \
-            --reject-regex 'wp-admin|wp-login.php' \
-            https://757688.xyz/
+          wget --mirror --convert-links --adjust-extension --page-requisites --no-parent --domains 757688.xyz --reject-regex 'wp-admin|wp-login.php' https://757688.xyz/
 
-      - name: Prepare publish dir for project pages
+      - name: Prepare publish dir
         run: |
           mkdir -p site
           cp -R 757688.xyz/* site/
@@ -42,28 +34,40 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          files = [p for p in Path('site').rglob('*') if p.is_file() and p.suffix.lower() in {'.html','.htm','.css','.js','.xml','.txt'}]
-          for p in files:
-              s = p.read_text(encoding='utf-8', errors='ignore')
-              s = s.replace('https://757688.xyz', 'https://yang2010chen.github.io/blog-static-backup')
-              s = s.replace('http://757688.xyz', 'https://yang2010chen.github.io/blog-static-backup')
-              s = s.replace('href="/', 'href="/blog-static-backup/')
-              s = s.replace('src="/', 'src="/blog-static-backup/')
-              s = s.replace('action="/', 'action="/blog-static-backup/')
-              s = s.replace("href='/", "href='/blog-static-backup/")
-              s = s.replace("src='/", "src='/blog-static-backup/")
-              s = s.replace("action='/", "action='/blog-static-backup/")
-              p.write_text(s, encoding='utf-8')
+          htmls=[]
+          for p in Path('site').rglob('*'):
+            if not p.is_file():
+              continue
+            ext=p.suffix.lower()
+            if ext in {'.html','.htm','.css','.js','.xml','.txt'}:
+              s=p.read_text(encoding='utf-8',errors='ignore')
+              s=s.replace('https://757688.xyz','https://yang2010chen.github.io/blog-static-backup')
+              s=s.replace('http://757688.xyz','https://yang2010chen.github.io/blog-static-backup')
+              s=s.replace('//757688.xyz','https://yang2010chen.github.io/blog-static-backup')
+              s=s.replace('href="/','href="/blog-static-backup/')
+              s=s.replace('src="/','src="/blog-static-backup/')
+              s=s.replace('action="/','action="/blog-static-backup/')
+              s=s.replace("href='/","href='/blog-static-backup/")
+              s=s.replace("src='/","src='/blog-static-backup/")
+              s=s.replace("action='/","action='/blog-static-backup/")
+              p.write_text(s,encoding='utf-8')
+            if ext in {'.html','.htm'}:
+              htmls.append(p)
+
+          fixer="""<script>(function(){var BASE='https://yang2010chen.github.io/blog-static-backup';document.querySelectorAll('a[href]').forEach(function(a){var h=a.getAttribute('href')||'';if(h==='https://757688.xyz'||h==='http://757688.xyz'||h==='/'||(a.textContent||'').trim()==='首页'&&/757688\.xyz/.test(h)){a.setAttribute('href',BASE+'/');}if(/^https?:\/\/757688\.xyz/.test(h)){a.setAttribute('href',h.replace(/^https?:\/\/757688\.xyz/,BASE));}});})();</script>"""
+          for p in htmls:
+            s=p.read_text(encoding='utf-8',errors='ignore')
+            if fixer not in s:
+              s=s.replace('</body>',fixer+'</body>') if '</body>' in s else s+fixer
+              p.write_text(s,encoding='utf-8')
           PY
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: site
-
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
