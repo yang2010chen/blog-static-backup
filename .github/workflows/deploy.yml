@@ -26,12 +26,34 @@ jobs:
           curl -L "http://757688.xyz/wp-content/uploads/simply-static/temp-files/simply-static-1-1772546357.zip" -o site.zip
           mkdir site
           unzip -q site.zip -d site
+
+      - name: Rewrite root-relative URLs for GitHub Pages project path
+        run: |
+          python3 - << 'PY'
+          from pathlib import Path
+          root = Path('site')
+          prefix = '/blog-static-backup/'
+          for p in root.rglob('*'):
+              if p.suffix.lower() not in {'.html', '.css', '.js'}:
+                  continue
+              s = p.read_text(encoding='utf-8', errors='ignore')
+              s = s.replace('href="/', f'href="{prefix}')
+              s = s.replace("href='/", f"href='{prefix}")
+              s = s.replace('src="/', f'src="{prefix}')
+              s = s.replace("src='/", f"src='{prefix}")
+              s = s.replace('action="/', f'action="{prefix}')
+              s = s.replace("action='/", f"action='{prefix}")
+              p.write_text(s, encoding='utf-8')
+          PY
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: site
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
