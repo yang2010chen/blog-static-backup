@@ -27,10 +27,29 @@ jobs:
           mkdir site
           unzip -q site.zip -d site
 
-      - name: Rewrite links for /blog-static-backup/ base path
+      - name: Rewrite links for GitHub Pages project path
         run: |
-          find site -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" \) -print0 | \
-          xargs -0 perl -i -pe 's{(href|src|action)=("|\x27)/}{$1=$2/blog-static-backup/}g'
+          python3 - <<'PY'
+          from pathlib import Path
+          base = '/blog-static-backup/'
+          for p in Path('site').rglob('*'):
+              if p.suffix.lower() not in {'.html', '.css', '.js'}:
+                  continue
+              s = p.read_text(encoding='utf-8', errors='ignore')
+              s = s.replace('href="/', f'href="{base}')
+              s = s.replace('src="/', f'src="{base}')
+              s = s.replace('action="/', f'action="{base}')
+              s = s.replace("href='/", f"href='{base}")
+              s = s.replace("src='/", f"src='{base}")
+              s = s.replace("action='/", f"action='{base}")
+              p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Verify rewritten output
+        run: |
+          if grep -R --line-number 'href="/' site/index.html; then
+            echo 'rewrite failed'; exit 1;
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
