@@ -38,6 +38,11 @@ jobs:
           mkdir -p site
           cp -R 757688.xyz/* site/
 
+      - name: Rewrite old-domain links to new GitHub Pages URL
+        run: |
+          find site -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" \) -print0 | \
+          xargs -0 perl -i -pe 's#https?://757688\.xyz#https://yang2010chen.github.io/blog-static-backup#g; s#href="/#href="/blog-static-backup/#g; s#src="/#src="/blog-static-backup/#g; s#action="/#action="/blog-static-backup/#g; s#href='\''/#href='\''/blog-static-backup/#g; s#src='\''/#src='\''/blog-static-backup/#g; s#action='\''/#action='\''/blog-static-backup/#g'
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
