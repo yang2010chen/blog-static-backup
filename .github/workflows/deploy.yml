@@ -1,4 +1,4 @@
-name: Deploy static site
+name: Mirror blog to GitHub Pages
 
 on:
   workflow_dispatch:
@@ -21,29 +21,22 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Download static zip from WordPress
+      - name: Mirror website
         run: |
-          curl -L "http://757688.xyz/wp-content/uploads/simply-static/temp-files/simply-static-1-1772546357.zip" -o site.zip
-          mkdir site
-          unzip -q site.zip -d site
+          wget \
+            --mirror \
+            --convert-links \
+            --adjust-extension \
+            --page-requisites \
+            --no-parent \
+            --domains 757688.xyz \
+            --reject-regex 'wp-admin|wp-login.php' \
+            https://757688.xyz/
 
-      - name: Rewrite links for GitHub Pages project path
+      - name: Prepare publish dir for project pages
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          base = '/blog-static-backup/'
-          for p in Path('site').rglob('*'):
-              if p.suffix.lower() not in {'.html', '.css', '.js'}:
-                  continue
-              s = p.read_text(encoding='utf-8', errors='ignore')
-              s = s.replace('href="/', f'href="{base}')
-              s = s.replace('src="/', f'src="{base}')
-              s = s.replace('action="/', f'action="{base}')
-              s = s.replace("href='/", f"href='{base}")
-              s = s.replace("src='/", f"src='{base}")
-              s = s.replace("action='/", f"action='{base}")
-              p.write_text(s, encoding='utf-8')
-          PY
+          mkdir -p site
+          cp -R 757688.xyz/* site/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
