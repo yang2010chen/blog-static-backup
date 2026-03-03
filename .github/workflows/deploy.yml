@@ -38,10 +38,23 @@ jobs:
           mkdir -p site
           cp -R 757688.xyz/* site/
 
-      - name: Rewrite old-domain links to new GitHub Pages URL
+      - name: Rewrite links to GitHub Pages URL/base
         run: |
-          find site -type f \( -name "*.html" -o -name "*.css" -o -name "*.js" \) -print0 | \
-          xargs -0 perl -i -pe 's#https?://757688\.xyz#https://yang2010chen.github.io/blog-static-backup#g; s#href="/#href="/blog-static-backup/#g; s#src="/#src="/blog-static-backup/#g; s#action="/#action="/blog-static-backup/#g; s#href='\''/#href='\''/blog-static-backup/#g; s#src='\''/#src='\''/blog-static-backup/#g; s#action='\''/#action='\''/blog-static-backup/#g'
+          python3 - <<'PY'
+          from pathlib import Path
+          files = [p for p in Path('site').rglob('*') if p.is_file() and p.suffix.lower() in {'.html','.htm','.css','.js','.xml','.txt'}]
+          for p in files:
+              s = p.read_text(encoding='utf-8', errors='ignore')
+              s = s.replace('https://757688.xyz', 'https://yang2010chen.github.io/blog-static-backup')
+              s = s.replace('http://757688.xyz', 'https://yang2010chen.github.io/blog-static-backup')
+              s = s.replace('href="/', 'href="/blog-static-backup/')
+              s = s.replace('src="/', 'src="/blog-static-backup/')
+              s = s.replace('action="/', 'action="/blog-static-backup/')
+              s = s.replace("href='/", "href='/blog-static-backup/")
+              s = s.replace("src='/", "src='/blog-static-backup/")
+              s = s.replace("action='/", "action='/blog-static-backup/")
+              p.write_text(s, encoding='utf-8')
+          PY
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
